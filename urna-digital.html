@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urna Digital - Sistema de Votação</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .vote-card:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-slate-800 rounded-3xl shadow-2xl border border-slate-700 overflow-hidden">
+        <!-- Header -->
+        <div class="bg-slate-700 p-6 text-center border-b border-slate-600">
+            <div class="flex justify-center mb-2">
+                <i data-lucide="vote" class="text-blue-400 w-10 h-10"></i>
+            </div>
+            <h1 class="text-2xl font-extrabold tracking-tight">URNA DIGITAL</h1>
+            <p class="text-slate-400 text-sm">Selecione seu candidato abaixo</p>
+        </div>
+
+        <!-- Voting Area -->
+        <div id="voting-screen" class="p-6 space-y-4">
+<button onclick="castVote('Lula')" class="vote-card w-full flex items-center justify-between p-5 bg-slate-700 hover:bg-slate-600 border-2 border-transparent hover:border-blue-500 rounded-2xl transition-all group">
+                    <div class="flex items-center gap-4">
+                        <span class="text-3xl font-bold text-slate-500 group-hover:text-blue-400">01</span>
+                        <span class="text-xl font-semibold">Lula <span id="live-count-Lula" class="ml-2 text-sm bg-slate-600 px-2 py-1 rounded-lg text-slate-300">0</span></span>
+                    </div>
+                    <i data-lucide="chevron-right" class="text-slate-500 group-hover:text-blue-400"></i>
+                </button>
+
+<button onclick="castVote('Flávio Bolsonaro')" class="vote-card w-full flex items-center justify-between p-5 bg-slate-700 hover:bg-slate-600 border-2 border-transparent hover:border-blue-500 rounded-2xl transition-all group">
+                    <div class="flex items-center gap-4">
+                        <span class="text-3xl font-bold text-slate-500 group-hover:text-blue-400">02</span>
+                        <span class="text-xl font-semibold">Flávio Bolsonaro <span id="live-count-Flavio" class="ml-2 text-sm bg-slate-600 px-2 py-1 rounded-lg text-slate-300">0</span></span>
+                    </div>
+                    <i data-lucide="chevron-right" class="text-slate-500 group-hover:text-blue-400"></i>
+                </button>
+
+            <div class="pt-6 flex justify-center">
+                <button onclick="showResults()" class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-medium">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                    Encerrar e Ver Resultados
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Area (Hidden by default) -->
+        <div id="results-screen" class="hidden p-6 space-y-6">
+            <div class="text-center mb-8">
+                <h2 class="text-xl font-bold">Apuração Final</h2>
+                <p class="text-slate-400 text-sm">Resultados em tempo real</p>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Lula Result -->
+                <div>
+                    <div class="flex justify-between mb-2 items-end">
+                        <span class="font-semibold">Lula</span>
+                        <span id="count-Lula" class="text-2xl font-bold">0</span>
+                    </div>
+                    <div class="w-full bg-slate-700 h-4 rounded-full overflow-hidden">
+                        <div id="bar-Lula" class="bg-blue-500 h-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                    <div id="perc-Lula" class="text-right text-xs text-slate-400 mt-1">0%</div>
+                </div>
+
+                <!-- Flávio Result -->
+                <div>
+                    <div class="flex justify-between mb-2 items-end">
+                        <span class="font-semibold">Flávio Bolsonaro</span>
+                        <span id="count-Flavio" class="text-2xl font-bold">0</span>
+                    </div>
+                    <div class="w-full bg-slate-700 h-4 rounded-full overflow-hidden">
+                        <div id="bar-Flavio" class="bg-indigo-500 h-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                    <div id="perc-Flavio" class="text-right text-xs text-slate-400 mt-1">0%</div>
+                </div>
+            </div>
+
+            <div id="winner-banner" class="p-4 bg-blue-600/20 border border-blue-500/50 rounded-xl text-center">
+                <p class="text-blue-400 font-bold text-lg" id="winner-text">Aguardando votos...</p>
+            </div>
+
+            <button onclick="resetSystem()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                Reiniciar Votação
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Estado do sistema
+        let votes = {
+            "Lula": 0,
+            "Flávio Bolsonaro": 0
+        };
+
+        function castVote(candidate) {
+            if (localStorage.getItem('hasVoted')) {
+                alert('Você já votou! Cada pessoa pode votar apenas uma vez.');
+                return;
+            }
+
+            votes[candidate]++;
+            localStorage.setItem('hasVoted', 'true');
+            
+            // Atualiza contagem em tempo real na tela de votação
+            const id = candidate === 'Lula' ? 'live-count-Lula' : 'live-count-Flavio';
+            document.getElementById(id).innerText = votes[candidate];
+            
+            // Feedback visual simples
+            const btn = event.currentTarget;
+            const originalBg = btn.className;
+            btn.classList.add('bg-green-600');
+            setTimeout(() => btn.className = originalBg, 200);
+        }
+
+        function showResults() {
+            document.getElementById('voting-screen').classList.add('hidden');
+            document.getElementById('results-screen').classList.remove('hidden');
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const total = votes["Lula"] + votes["Flávio Bolsonaro"];
+            const pLula = total === 0 ? 0 : (votes["Lula"] / total * 100);
+            const pFlavio = total === 0 ? 0 : (votes["Flávio Bolsonaro"] / total * 100);
+
+            // Atualiza números
+            document.getElementById('count-Lula').innerText = votes["Lula"];
+            document.getElementById('count-Flavio').innerText = votes["Flávio Bolsonaro"];
+            
+            // Atualiza porcentagens
+            document.getElementById('perc-Lula').innerText = pLula.toFixed(1) + '%';
+            document.getElementById('perc-Flavio').innerText = pFlavio.toFixed(1) + '%';
+
+            // Atualiza barras
+            document.getElementById('bar-Lula').style.width = pLula + '%';
+            document.getElementById('bar-Flavio').style.width = pFlavio + '%';
+
+            // Define vencedor
+            const winnerText = document.getElementById('winner-text');
+            if (total === 0) {
+                winnerText.innerText = "Nenhum voto registrado";
+            } else if (votes["Lula"] > votes["Flávio Bolsonaro"]) {
+                winnerText.innerText = "Vencedor: Lula 🏆";
+            } else if (votes["Flávio Bolsonaro"] > votes["Lula"]) {
+                winnerText.innerText = "Vencedor: Flávio Bolsonaro 🏆";
+            } else {
+                winnerText.innerText = "Resultado: Empate! 🤝";
+            }
+        }
+
+        function resetSystem() {
+            votes = { "Lula": 0, "Flávio Bolsonaro": 0 };
+            localStorage.removeItem('hasVoted');
+            document.getElementById('results-screen').classList.add('hidden');
+            document.getElementById('voting-screen').classList.remove('hidden');
+        }
+
+        // Inicializa ícones
+        lucide.createIcons();
+    </script>
+</body>
+</html>
